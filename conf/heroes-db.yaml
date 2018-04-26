@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  labels:
+    name: mongodb
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 27017
+    targetPort: 27017
+  selector:
+    name: heroes-db
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name:  heroes-db-deploy
+  labels:
+    name:  heroes-db
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name:  heroes-db
+    spec:
+      imagePullSecrets:
+        - name: acr-secret
+      containers:
+      - image:  mongo:3.6.1-jessie
+        name:  mongo
+        resources:
+          requests:
+            cpu: "20m"
+            memory: "55M"
+        ports:
+        - containerPort:  27017
+          name:  heroes-db
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: datadir
+          mountPath: /usr/tmp
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: datadir
+          emptyDir: {}
+      restartPolicy: Always
+      initContainers:
+      - name: get-hero-data
+        image: busybox  
+        command: ['sh', '-c', 'for i in {1..100}; do sleep 1; if [ ! -f "./data-dir/heroes.json" ]; then wget -O ./data-dir/heroes.json https://raw.githubusercontent.com/Azure/blackbelt-aks-hackfest/master/app/db/heroes.json; cat ./data-dir/heroes.json; exit 1; fi; done; exit 0']
+        volumeMounts:
+        - name: datadir
+          mountPath: "/data-dir"
+      - name: get-site-data
+        image: busybox  
+        command: ['sh', '-c', 'for i in {1..100}; do sleep 1; if [ ! -f "./data-dir/sites.json" ]; then wget -O ./data-dir/sites.json https://raw.githubusercontent.com/Azure/blackbelt-aks-hackfest/master/app/db/sites.json; cat ./data-dir/sites.json; exit 1; fi; done; exit 0']
+        volumeMounts:
+        - name: datadir
+          mountPath: "/data-dir"
+      - name: get-ratings-data
+        image: busybox  
+        command: ['sh', '-c', 'for i in {1..100}; do sleep 1; if [ ! -f "./data-dir/ratings.json" ]; then wget -O ./data-dir/ratings.json https://raw.githubusercontent.com/Azure/blackbelt-aks-hackfest/master/app/db/ratings.json; cat ./data-dir/ratings.json; exit 1; fi; done; exit 0']
+        volumeMounts:
+        - name: datadir
+          mountPath: "/data-dir"
+      - name: import-hero-data
+        image: mongo:3.6.1-jessie
+        command: ['sh', '-c', 'for i in {1..100}; do sleep 1; if [ -f "./data-dir/heroes.json" ]; then mongoimport --host localhost:27017 --db webratings --collection heroes --file /data-dir/heroes.json --jsonArray; exit 0; fi; done; exit 1']
+        volumeMounts:
+        - name: datadir
+          mountPath: "/data-dir"
+      - name: import-site-data
+        image: mongo:3.6.1-jessie
+        command: ['sh', '-c', 'for i in {1..100}; do sleep 1; if [ -f "./data-dir/sites.json" ]; then mongoimport --host localhost:27017 --db webratings --collection sites --file /data-dir/sites.json --jsonArray; exit 0; fi; done; exit 1']
+        volumeMounts:
+        - name: datadir
+          mountPath: "/data-dir"
+      - name: import-ratings-data
+        image: mongo:3.6.1-jessie
+        command: ['sh', '-c', 'for i in {1..100}; do sleep 1; if [ -f "./data-dir/ratings.json" ]; then mongoimport --host localhost:27017 --db webratings --collection ratings --file /data-dir/ratings.json --jsonArray; exit 0; fi; done; exit 1']
+        volumeMounts:
+        - name: datadir
+          mountPath: "/data-dir"
