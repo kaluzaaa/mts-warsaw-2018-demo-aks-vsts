@@ -42,7 +42,7 @@ spec:
             memory: "55M"
         env:
         - name:  MONGODB_URI
-          value:  mongodb://mongodb:27017/webratings
+          value:  mongodb://mtsdemodb:#{MONGODB_PASS}#@mtsdemodb.documents.azure.com:10255/?ssl=true&replicaSet=globaldb
         ports:
         - containerPort:  3000
           name:  heroes-api
