@@ -34,7 +34,7 @@ spec:
       imagePullSecrets:
         - name: acr-secret
       containers:
-      - image: #{ACR_LOGIN_SERVER}#/#{BUILD_REPOSITORY_NAME}/API:#{BUILD_SOURCEVERSION}#
+      - image: #{ACR_LOGIN_SERVER}#/#{BUILD_REPOSITORY_ID}#/API:#{BUILD_SOURCEVERSION}#
         name:  heroes-api-cntnr
         resources:
           requests:
